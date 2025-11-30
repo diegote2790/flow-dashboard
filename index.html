@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Dashboard - Flow Style</title>
+    <style>
+        :root {
+            /* Paleta de colores estilo Flow */
+            --bg-color: #000000;
+            --card-bg: #111111;
+            --text-main: #ffffff;
+            --accent-green: #39ff14; /* Verde Neón */
+            --accent-green-dim: #2cb812;
+            --text-secondary: #aaaaaa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--text-main);
+            border-bottom: 2px solid var(--accent-green);
+            padding-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Grid Layout */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            margin-top: 30px;
+        }
+
+        /* Estilo de las Tarjetas */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 120px;
+        }
+
+        .card:hover {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.3);
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            margin: 0;
+            color: var(--accent-green);
+            font-size: 1.2rem;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        /* Botón de borrar (pequeña X) */
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            color: #555;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .delete-btn:hover {
+            color: red;
+        }
+
+        /* Botón Flotante para Agregar */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: var(--accent-green);
+            color: black;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            box-shadow: 0 4px 10px rgba(57, 255, 20, 0.4);
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            background-color: var(--accent-green-dim);
+        }
+
+        /* Modal simple */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #222;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid var(--accent-green);
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        input {
+            padding: 10px;
+            background: #111;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 5px;
+        }
+        .btn-save {
+            padding: 10px;
+            background: var(--accent-green);
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .btn-cancel {
+            padding: 10px;
+            background: #444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Mis Apps de Trabajo</h1>
+    
+    <div class="grid-container" id="cards-container">
+        </div>
+
+    <button class="fab" onclick="openModal()">+</button>
+
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <h3 style="color:white; margin-top:0;">Nueva App</h3>
+            <input type="text" id="appTitle" placeholder="Nombre (ej. Jira)">
+            <input type="text" id="appDesc" placeholder="Descripción corta">
+            <input type="url" id="appUrl" placeholder="https://...">
+            <button class="btn-save" onclick="addCard()">Guardar</button>
+            <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        // Datos iniciales de ejemplo
+        const defaultApps = [
+            { title: "Correo", desc: "Outlook Web", url: "https://outlook.office.com" },
+            { title: "Jira", desc: "Gestión de tickets", url: "#" },
+            { title: "Salesforce", desc: "CRM Clientes", url: "#" }
+        ];
+
+        // Cargar datos de localStorage o usar los predeterminados
+        let apps = JSON.parse(localStorage.getItem('myWorkApps')) || defaultApps;
+
+        const container = document.getElementById('cards-container');
+        const modal = document.getElementById('addModal');
+
+        // Función para renderizar las tarjetas
+        function renderCards() {
+            container.innerHTML = ''; // Limpiar grid
+            apps.forEach((app, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                // El clic en la tarjeta lleva al link
+                card.onclick = (e) => {
+                    if(e.target.className !== 'delete-btn') window.open(app.url, '_blank');
+                };
+
+                card.innerHTML = `
+                    <span class="delete-btn" onclick="deleteCard(${index})">×</span>
+                    <h3>${app.title}</h3>
+                    <p>${app.desc}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Agregar nueva tarjeta
+        function addCard() {
+            const title = document.getElementById('appTitle').value;
+            const desc = document.getElementById('appDesc').value;
+            const url = document.getElementById('appUrl').value;
+
+            if (title && url) {
+                apps.push({ title, desc, url });
+                saveAndRender();
+                closeModal();
+                // Limpiar inputs
+                document.getElementById('appTitle').value = '';
+                document.getElementById('appDesc').value = '';
+                document.getElementById('appUrl').value = '';
+            } else {
+                alert("Por favor ingresa al menos un nombre y un link.");
+            }
+        }
+
+        // Borrar tarjeta
+        function deleteCard(index) {
+            if(confirm('¿Eliminar este acceso directo?')) {
+                apps.splice(index, 1);
+                saveAndRender();
+            }
+        }
+
+        // Guardar en LocalStorage
+        function saveAndRender() {
+            localStorage.setItem('myWorkApps', JSON.stringify(apps));
+            renderCards();
+        }
+
+        // Control del Modal
+        function openModal() { modal.style.display = 'flex'; }
+        function closeModal() { modal.style.display = 'none'; }
+
+        // Inicializar
+        renderCards();
+    </script>
+</body>
+</html>
